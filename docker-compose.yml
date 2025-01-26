@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  FlexTTS:
+    build: .
+    ports:
+      - "6969:6969"
+    volumes:
+      - ./data:/app/data  # Mount persistant data directory for speakers and models
+    environment:
+      - FLASK_APP=FlexTTS.py
+      - DEFAULT_LANGUAGE=en # Default language for text-to-speech
+      - DEFAULT_SPEAKER=Donald_Trump # Default speaker for text-to-speech
+      - DOCKER_PORT=6969 # External port for URL generation
+    restart: unless-stopped  # Automatically restart container unless manually stopped

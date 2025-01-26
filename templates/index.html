@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FlexTTS Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #audioContainer {
+            margin-top: 20px;
+        }
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            margin-bottom: 10px;
+        }
+        .generating-indicator {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            color: #856404;
+        }
+        .doc-section {
+            margin: 30px 0;
+        }
+        .endpoint {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .endpoint h4 {
+            margin: 0 0 15px 0;
+            color: #2196F3;
+        }
+        .endpoint h5 {
+            margin: 15px 0 5px 0;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FlexTTS</h1>
+        <form id="ttsForm" action="/" method="post">
+            <input type="hidden" name="response_type" value="base64">
+            
+            <div class="form-group">
+                <label for="language">Language:</label>
+                <select id="language" name="language">
+                    {% for lang in languages %}
+                    <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="speaker">Speaker:</label>
+                <select id="speaker" name="speaker">
+                    {% for speaker in languages[selected_language] %}
+                    <option value="{{ speaker }}" {% if speaker == selected_speaker %}selected{% endif %}>{{ speaker }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="text">Text:</label>
+                <textarea id="text" name="text" placeholder="Enter text to convert to speech...">{% if input_text %}{{ input_text }}{% endif %}</textarea>
+            </div>
+
+            <button type="submit">Generate Speech</button>
+        </form>
+        <div id="generatingIndicator" class="generating-indicator">
+            Generating audio, please wait...
+        </div>
+        {% if audio_data %}
+        <div id="audioContainer">
+            <h3>Generated Audio:</h3>
+            <audio controls>
+                <source src="data:audio/wav;base64,{{ audio_data }}" type="audio/wav">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="container" style="margin-top: 30px;">
+        <h2>API Documentation</h2>
+        
+        <div class="doc-section">
+            <h3>Endpoints</h3>
+            
+            <div class="endpoint">
+                <h4>GET /</h4>
+                <p>Returns this web interface or API information if JSON is requested.</p>
+                <pre><code>curl -H "Accept: application/json" http://localhost:5000/</code></pre>
+            </div>
+
+            <div class="endpoint">
+                <h4>POST /</h4>
+                <p>Converts text to speech using the specified speaker and language.</p>
+                <h5>Parameters:</h5>
+                <ul>
+                    <li><code>text</code> (required) - Text to convert to speech</li>
+                    <li><code>language</code> (optional) - Language code (default: {{ selected_language }})</li>
+                    <li><code>speaker</code> (optional) - Speaker name (default: {{ selected_speaker }})</li>
+                    <li><code>response_type</code> (optional) - Response format, either "url" (default) or "base64"</li>
+                </ul>
+                <h5>Example with URL response:</h5>
+                <pre><code>curl -X POST http://localhost:5000/ \
+    -H "Content-Type: application/json" \
+    -d '{
+        "text": "Hello, this is a test",
+        "language": "en",
+        "speaker": "Donald Trump",
+        "response_type": "url"
+    }'</code></pre>
+                <p>Response:</p>
+                <pre><code>{
+    "text": "Hello, this is a test",
+    "url": "http://localhost:5000/static/audio/unique-id.wav",
+    "format": "wav"
+}</code></pre>
+                
+                <h5>Example with base64 response:</h5>
+                <pre><code>curl -X POST http://localhost:5000/ \
+    -H "Content-Type: application/json" \
+    -d '{
+        "text": "Hello, this is a test",
+        "language": "en",
+        "speaker": "Donald Trump",
+        "response_type": "base64"
+    }'</code></pre>
+                <p>Response:</p>
+                <pre><code>{
+    "text": "Hello, this is a test",
+    "audio_data": "base64_encoded_audio_data",
+    "format": "wav",
+    "encoding": "base64"
+}</code></pre>
+            </div>
+
+            <div class="endpoint">
+                <h4>GET /speakers</h4>
+                <p>Lists all available languages and their speakers.</p>
+                <pre><code>curl http://localhost:5000/speakers</code></pre>
+                <p>Response:</p>
+                <pre><code>{
+    "en": [
+        "Donald Trump",
+        "Joe Biden"
+    ],
+    "de": [
+        "Angela Merkel"
+    ]
+}</code></pre>
+            </div>
+
+            <div class="endpoint">
+                <h4>GET /speakers/{language}</h4>
+                <p>Lists available speakers for a specific language.</p>
+                <pre><code>curl http://localhost:5000/speakers/en</code></pre>
+                <p>Response:</p>
+                <pre><code>{
+    "language": "en",
+    "speakers": [
+        "Donald Trump",
+        "Joe Biden"
+    ]
+}</code></pre>
+            </div>
+        </div>
+
+        <div class="doc-section">
+            <h3>Notes</h3>
+            <ul>
+                <li>Audio files returned via URL are automatically deleted after 1 hour</li>
+                <li>Speaker names are case-insensitive and spaces can be replaced with underscores</li>
+                <li>When using base64 response, the audio data can be decoded and saved as a WAV file</li>
+                <li>All responses include appropriate error messages if something goes wrong</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Store the speaker data
+        const speakersByLanguage = JSON.parse('{{ languages|tojson|safe }}');
+
+        // Function to update speaker options based on selected language
+        function updateSpeakers() {
+            const languageSelect = document.getElementById('language');
+            const speakerSelect = document.getElementById('speaker');
+            const selectedLanguage = languageSelect.value;
+            const speakers = speakersByLanguage[selectedLanguage] || [];
+
+            // Clear current options
+            speakerSelect.innerHTML = '';
+
+            // Add new options
+            speakers.forEach(speaker => {
+                const option = document.createElement('option');
+                option.value = speaker;
+                option.textContent = speaker;
+                speakerSelect.appendChild(option);
+            });
+        }
+
+        // Add event listener to language select
+        document.getElementById('language').addEventListener('change', updateSpeakers);
+
+        document.getElementById('ttsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show generating indicator
+            document.getElementById('generatingIndicator').style.display = 'block';
+            
+            // Remove existing audio container if it exists
+            const existingAudio = document.getElementById('audioContainer');
+            if (existingAudio) {
+                existingAudio.remove();
+            }
+            
+            // Get the form data
+            const formData = new FormData(this);
+            
+            // Send the request
+            fetch('/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Hide generating indicator
+                document.getElementById('generatingIndicator').style.display = 'none';
+                
+                // Store the current form values
+                const currentText = document.querySelector('textarea[name="text"]').value;
+                const currentLanguage = document.querySelector('select[name="language"]').value;
+                const currentSpeaker = document.querySelector('select[name="speaker"]').value;
+                
+                // Update the page content
+                document.documentElement.innerHTML = html;
+                
+                // Restore the form values
+                document.querySelector('textarea[name="text"]').value = currentText;
+                document.querySelector('select[name="language"]').value = currentLanguage;
+                document.querySelector('select[name="speaker"]').value = currentSpeaker;
+                
+                // Reattach event listeners
+                document.getElementById('language').addEventListener('change', updateSpeakers);
+                document.getElementById('ttsForm').addEventListener('submit', arguments.callee);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('generatingIndicator').style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>

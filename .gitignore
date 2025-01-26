@@ -1,0 +1,10 @@
+*.pyc
+.pytest_cache/
+.env
+.docker/
+venv/
+__pycache__/
+_backup/
+data/speakers/*
+data/tts/*
+static/audio/*
