@@ -49,7 +49,7 @@ def log(*args):
 
 log("Loading FlexTTS")
 
-app_path = os.getcwd()
+app_path = os.getenv("APP_PATH", os.getcwd())  # Use APP_PATH if set, otherwise getcwd
 speaker_path = os.path.join(app_path, "data", "speakers")
 static_audio_path = os.path.join(app_path, "static", "audio")
 

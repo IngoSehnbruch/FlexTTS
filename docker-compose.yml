@@ -13,6 +13,7 @@ services:
     environment:
       - FLASK_APP=/app/flextts.py  # Full path to the Flask app
       - FLASK_DEBUG=1  # Enable Flask debug mode for auto-reload
+      - APP_PATH=/app  # Set app path for container
       - DEFAULT_LANGUAGE=en # Default language for text-to-speech
       - DEFAULT_SPEAKER=Donald_Trump # Default speaker for text-to-speech
       - DOCKER_PORT=6969 # External port for URL generation
