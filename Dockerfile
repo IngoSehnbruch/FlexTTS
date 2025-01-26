@@ -31,10 +31,14 @@ RUN pip install --no-cache-dir \
     numpy==1.24.3 \
     tqdm==4.66.1 \
     PyYAML==6.0.1 \
-    pysbd==0.3.4
+    pysbd==0.3.4 \
+    fsspec==2023.12.2 \
+    huggingface-hub==0.20.1 \
+    coqpit==0.0.17
 
 # Install PyTorch CPU version for ARM
 RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu
 
 # Copy all application files
 COPY . /app/
