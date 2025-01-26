@@ -8,8 +8,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV MAKEFLAGS="-j4"
 ENV CFLAGS="-march=armv8-a"
 
-WORKDIR /app
-
 # Install system dependencies required for TTS and build tools
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -22,6 +20,10 @@ RUN apt-get update && apt-get install -y \
     libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Create app directory
+RUN mkdir -p /app
+WORKDIR /app
+
 # Install numpy and other dependencies first
 RUN pip install --no-cache-dir \
     setuptools==65.5.1 \
@@ -31,8 +33,8 @@ RUN pip install --no-cache-dir \
 # Install PyTorch CPU version for ARM
 RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt /app/
+# Copy all application files
+COPY . /app/
 
 # Install TTS without dependencies first (we'll install them manually)
 RUN pip install --no-cache-dir \
@@ -53,10 +55,6 @@ RUN pip install --no-cache-dir \
 # Create necessary directories
 RUN mkdir -p /app/data/speakers /app/static/audio
 
-# Copy application files
-COPY flextts.py /app/
-COPY templates /app/templates/
-
 # Set TTS_HOME for model storage
 ENV TTS_HOME=/app/data
 
@@ -67,4 +65,4 @@ RUN ls -la /app/
 EXPOSE 6969
 
 # Command to run the app
-CMD ["python", "/app/flextts.py"]
+CMD ["python", "flextts.py"]
