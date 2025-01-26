@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
-RUN mkdir -p /opt/app
-WORKDIR /opt/app
+RUN mkdir -p /app
+WORKDIR /app
 
 # Install numpy and other dependencies first
 RUN pip install --no-cache-dir \
@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
 
 # Copy all application files
-COPY . /opt/app/
+COPY . /app/
 
 # Install TTS without dependencies first (we'll install them manually)
 RUN pip install --no-cache-dir \
@@ -59,10 +59,10 @@ RUN mkdir -p /app/data/speakers /app/static/audio
 ENV TTS_HOME=/app/data
 
 # Verify files exist
-RUN ls -la /opt/app/
+RUN ls -la /app/
 
 # Expose the port the app runs on
 EXPOSE 6969
 
 # Command to run the app
-CMD ["python", "/opt/app/flextts.py"]
+CMD ["python", "flextts.py"]
