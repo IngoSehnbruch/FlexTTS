@@ -79,7 +79,27 @@ if not os.path.exists(os.path.join(speaker_path, default["language"], default["s
 # Initialize TTS model
 os.environ['TTS_HOME'] = os.path.join(app_path, "data") # Save to permanent storage (for Docker)
 os.environ['COQUI_TOS_AGREED'] = "1" # Required for uninterrupted TTS Model Download
-tts = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", gpu=torch.cuda.is_available())
+
+class TTSManager:
+    _instance = None
+    _model = None
+
+    @classmethod
+    def get_model(cls):
+        if cls._model is None:
+            log("Loading TTS model...")
+            if torch.cuda.is_available():
+                # Clear CUDA cache before loading model
+                torch.cuda.empty_cache()
+                # Set memory usage limits for CUDA
+                torch.cuda.set_per_process_memory_fraction(0.8)  # Use up to 80% of available VRAM
+            cls._model = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", gpu=torch.cuda.is_available())
+        return cls._model
+
+    @classmethod
+    def clear_cuda(cls):
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 # Initialize Flask app
 app = Flask(__name__, static_url_path='/static')
@@ -87,6 +107,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Configure server name if running in Docker
 docker_port = os.getenv('DOCKER_PORT', '6969')  # Default to 6969 if not set
+
+# Initialize TTS model at startup
+log("Loading TTS model at startup...")
+TTSManager.get_model()
+
 # ##### Helper functions
 
 def get_languages_data():
@@ -260,7 +285,8 @@ def handle_tts():
             sys.stdout = StringIO()
             
         try:
-            tts.tts_to_file(
+            tts_model = TTSManager.get_model()
+            tts_model.tts_to_file(
                 text=text,
                 file_path=output_path,
                 speaker_wav=speaker_wav,
@@ -277,12 +303,32 @@ def handle_tts():
             'format': 'wav'
         }
 
-        if response_type == 'url':
-            response_data['url'] = url_for('static', filename=f'audio/{output_filename}', _external=True)
-        else:  # base64
+        if response_type == 'base64':
             with open(output_path, 'rb') as audio_file:
-                response_data['audio_data'] = base64.b64encode(audio_file.read()).decode()
-                response_data['encoding'] = 'base64'
+                audio_data = base64.b64encode(audio_file.read()).decode('utf-8')
+                
+            # Clean up the file since we've encoded it
+            try:
+                os.remove(output_path)
+            except Exception as e:
+                log(f"Error removing temporary file {output_path}: {e}")
+                
+            # Clear CUDA cache after generation
+            TTSManager.clear_cuda()
+                
+            response_data['audio_data'] = audio_data
+            response_data['encoding'] = 'base64'
+        else:  # URL response
+            # Generate URL for the audio file
+            audio_url = url_for('static', filename=f'audio/{output_filename}', _external=True)
+            if docker_port:
+                # Replace port in URL if running in Docker
+                audio_url = re.sub(r':\d+/', f':{docker_port}/', audio_url)
+            
+            # Clear CUDA cache after generation
+            TTSManager.clear_cuda()
+            
+            response_data['url'] = audio_url
 
         if DEBUG:
             log("SUCCESS: Audio synthesized [" + response_type + "]")
@@ -293,7 +339,7 @@ def handle_tts():
         
         # HTML INTERFACE ONLY:
         return render_template('index.html', 
-                             audio_data=response_data['audio_data'], 
+                             audio_data=response_data.get('audio_data'), 
                              input_text=text,
                              languages=get_languages_data(),
                              selected_language=language,
