@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  FlexTTS:
+  flextts:
     build: .
     ports:
       - "6969:6969"
