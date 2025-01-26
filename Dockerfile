@@ -46,7 +46,8 @@ RUN pip install --no-cache-dir \
     matplotlib==3.7.4 \
     pyparsing==3.1.1 \
     cycler==0.12.1 \
-    kiwisolver==1.4.5
+    kiwisolver==1.4.5 \
+    anyascii==0.3.2
 
 # Install PyTorch CPU version for ARM
 RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu

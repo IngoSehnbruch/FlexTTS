@@ -27,3 +27,4 @@ matplotlib==3.7.4
 pyparsing==3.1.1
 cycler==0.12.1
 kiwisolver==1.4.5
+anyascii==0.3.2
