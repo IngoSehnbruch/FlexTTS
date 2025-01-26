@@ -11,7 +11,7 @@ services:
       - ./data:/app/data  # Keep persistent data separate
       - ./static:/app/static  # Keep static files separate
     environment:
-      - FLASK_APP=flextts.py
+      - FLASK_APP=/app/flextts.py  # Full path to the Flask app
       - FLASK_DEBUG=1  # Enable Flask debug mode for auto-reload
       - DEFAULT_LANGUAGE=en # Default language for text-to-speech
       - DEFAULT_SPEAKER=Donald_Trump # Default speaker for text-to-speech

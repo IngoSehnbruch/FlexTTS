@@ -62,4 +62,4 @@ ENV TTS_HOME=/app/data
 EXPOSE 6969
 
 # Command to run the app with reload
-CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=6969", "--reload"]
+CMD ["flask", "run", "--host=0.0.0.0", "--port=6969", "--reload"]
