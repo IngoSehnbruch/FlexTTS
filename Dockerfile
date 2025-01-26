@@ -29,7 +29,8 @@ RUN pip install --no-cache-dir \
     setuptools==65.5.1 \
     wheel==0.40.0 \
     numpy==1.24.3 \
-    tqdm==4.66.1
+    tqdm==4.66.1 \
+    PyYAML==6.0.1
 
 # Install PyTorch CPU version for ARM
 RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
