@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  flextts:
+    build:
+      context: .
+      dockerfile: Dockerfile.arm  # Use ARM-optimized Dockerfile
+    environment:
+      - ARCH=arm  # Mark as ARM build

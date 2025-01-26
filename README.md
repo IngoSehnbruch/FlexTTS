@@ -14,6 +14,7 @@ A flexible Text-to-Speech API service powered by [Coqui TTS](https://github.com/
 - 🔒 Production-ready with error handling
 - 🧹 Automatic cleanup of old audio files
 - 🎯 Simple web interface for testing and demos
+- 🎛️ Platform-optimized builds (ARM/x86)
 
 ### Ready for Home Assistant
 
@@ -36,12 +37,44 @@ A flexible Text-to-Speech API service powered by [Coqui TTS](https://github.com/
 2. Set up your speaker voice samples in `data/speaker/{language}/{speaker}.wav`
 3. Run with Docker Compose:
 
+#### Automatic Platform Detection (Recommended)
+Use the setup script which automatically detects your platform and uses the appropriate configuration:
+
 ```bash
-docker-compose up -d
+chmod +x docker-setup.sh  # Make script executable (Unix/Linux only)
+./docker-setup.sh        # Unix/Linux
+# or
+sh docker-setup.sh      # Windows
+```
+
+#### Manual Platform Selection
+
+For ARM devices (working on a Raspberry Pi 5 with 8 GB RAM):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.arm.yml up -d
+```
+
+For standard x86/x64 systems:
+```bash
+docker compose up -d
 ```
 
 The API will be available at `http://localhost:6969` / `http://<your-ip>:6969`
 (or the port specified in `docker-compose.yml`).
+
+### Platform-Specific Notes
+
+#### Raspberry Pi / ARM Devices
+- Uses optimized ARM-specific builds
+- Includes additional dependencies for better ARM compatibility
+- Configured for optimal performance on limited resources
+- Special PyTorch CPU build for ARM
+
+#### Standard x86/x64 Systems
+- Uses standard Python packages
+- Simpler dependency structure
+- Compatible with CUDA if available
+- Optimized for desktop/server performance
 
 ### Manual Setup
 
@@ -58,7 +91,7 @@ pip install -r requirements.txt
 
 ```env
 DEFAULT_LANGUAGE=en
-DEFAULT_SPEAKER=Donald_Trump
+DEFAULT_SPEAKER=donald_trump
 ```
 
 4. Run the Flask application:
@@ -83,6 +116,21 @@ data/speaker/
 └── de/
     └── angela_merkel.wav
 ```
+
+## Development Mode
+
+The application supports hot-reloading in development mode. When running with Docker, code changes will be automatically detected and the server will restart. This is enabled by:
+
+- Volume mounting of the app directory
+- Flask debug mode
+- Auto-reload capability
+
+This makes it easy to:
+- Make code changes without rebuilding
+- Test changes immediately
+- Debug issues in real-time
+
+Note: Dependency changes still require a rebuild with `docker compose up --build`
 
 ## API Documentation
 
@@ -113,7 +161,7 @@ curl -X POST http://localhost:6969/ \
     -d '{
         "text": "I will make text to speech great again!",
         "language": "en",
-        "speaker": "Donald Trump",
+        "speaker": "donald_trump",
         "response_type": "url"
     }'
 ```
@@ -135,7 +183,7 @@ curl -X POST http://localhost:6969/ \
     -d '{
         "text": "I will make text to speech great again!",
         "language": "en",
-        "speaker": "Donald Trump",
+        "speaker": "donald_trump",
         "response_type": "base64"
     }'
 ```
@@ -162,11 +210,11 @@ Response:
 ```json
 {
     "en": [
-        "Donald Trump",
-        "Joe Biden"
+        "donald_trump",
+        "joe_biden"
     ],
     "de": [
-        "Angela Merkel"
+        "angela_merkel"
     ]
 }
 ```
@@ -184,8 +232,8 @@ Response:
 {
     "language": "en",
     "speakers": [
-        "Donald Trump",
-        "Joe Biden"
+        "donald_trump",
+        "joe_biden"
     ]
 }
 ```
@@ -199,17 +247,26 @@ tts:
   - platform: generic
     name: FlexTTS
     base_url: http://<ip>:6969
-    input_template: "{{ text }}"
+    cache: true
+    cache_dir: /tmp/tts
+    service_name: flextts
+    timeout: 120  # Increased timeout (in seconds)
 ```
 
-### Configuration Variables
+### Configuration Options
 
-- **platform** (required): Always set to `"generic"`
-- **name** (optional): The name for this TTS platform in Home Assistant
-- **base_url** (required): The URL of your FlexTTS instance (replace `<ip>` with your server's IP address)
-- **input_template** (required): Leave as `"{{ text }}"` to pass the message correctly
+- **base_url**: Your FlexTTS server address (e.g., `http://192.168.1.100:6969`)
+- **cache**: Enable caching of generated audio files (recommended)
+- **cache_dir**: Where Home Assistant stores the cached audio files
+- **service_name**: The service name to use in automations
+- **timeout**: Time to wait for TTS generation (default: 30s)
+  - The timeout is depending on your usage and the hardware used.
+  - For Raspberry Pi: For short text use 120 (seconds), for longer texts 300 (seconds)
+  - For CUDA systems: 60s should be sufficient, if not sending a lot of text.
+  - While there's no documented maximum timeout, keeping it under 300s (5 min) is recommended (?)
+  - Consider splitting very long texts into smaller chunks if you hit timeouts
 
-### Example Usage
+Note: FlexTTS automatically cleans up its own generated files after 1 hour. Home Assistant manages its cache separately.
 
 In Home Assistant automations or scripts:
 
@@ -217,41 +274,50 @@ In Home Assistant automations or scripts:
 service: tts.flextts_speak
 data:
   entity_id: media_player.living_room_speaker
-  message: "Welcome home!"
+  message: "I will make text to speech great again!"
 ```
-
-To use different languages or speakers, you can format your message with the appropriate parameters:
-
-```yaml
-service: tts.flextts_speak
-data:
-  entity_id: media_player.living_room_speaker
-  message: |
-    {"text": "Welcome home!", "language": "en", "speaker": "Donald Trump"}
-```
-
-The TTS will be processed by FlexTTS and played through your specified media player. The audio files are automatically cleaned up after 1 hour.
 
 ## Project Structure
 
 ```
 .
 ├── data/
-│   └── speaker/          # Speaker voice samples (example)
+│   └── speaker/         # Speaker voice samples (example)
 │       ├── en/
 │       │   ├── donald_trump.wav
 │       │   └── joe_biden.wav
 │       └── de/
-│           └── angela_merkel.wav
 ├── static/
-│   └── audio/           # Generated audio files (auto-cleaned)
+│   └── audio/          # Generated audio files (auto-cleaned)
 ├── templates/
-│   └── index.html       # Web interface
+│   └── index.html      # Web interface
+├── docker-setup.sh     # Platform detection and setup script
+├── Dockerfile          # Standard x86/x64 build configuration
+├── Dockerfile.arm      # Optimized ARM build configuration
+├── docker-compose.yml  # Base Docker configuration
+├── docker-compose.arm.yml  # ARM-specific configuration
 ├── flextts.py          # Main application
 ├── requirements.txt    # Python dependencies
-├── Dockerfile         # Docker build instructions
-└── docker-compose.yml # Docker compose configuration
-```
+└── README.md           # This Documentation
+
+### Key Components
+
+- **Docker Configuration**
+  - `Dockerfile`: Standard build for x86/x64 systems
+  - `Dockerfile.arm`: Optimized build for ARM devices (Raspberry Pi)
+  - `docker-compose.yml`: Base configuration for all platforms
+  - `docker-compose.arm.yml`: Additional settings for ARM
+  - `docker-setup.sh`: Automatic platform detection and setup
+
+- **Application Core**
+  - `flextts.py`: Main Flask application with TTS logic
+  - `requirements.txt`: Python package dependencies
+  - `templates/index.html`: Web interface template
+
+- **Data Directories**
+  - `data/speaker/`: Voice samples for TTS cloning
+  - `static/audio/`: Generated audio files (cleaned hourly)
+  - `data/`: TTS model storage (downloaded on first run)
 
 ## Important Notes
 
@@ -263,11 +329,13 @@ The TTS will be processed by FlexTTS and played through your specified media pla
 - Generated audio files are stored in `static/audio/` with unique filenames
 - Default port is 6969 (both in Docker and standalone mode)
 - CUDA GPU acceleration is used automatically if available (optional, but recommended)
+- On first start, the model is downloaded and saved to persistent storage (~1.9GB) before the app is ready to use
+- On container-startup, the xtts model is loaded into memory before the app is ready to use
+- On installing, the first build on a Pi5 will take up to 10-15 minutes (with a good internet connection)
 
 ## Development
 
 To run in debug mode, set `DEBUG=true` in your environment variables. This enables detailed logging.
-
 
 ## License
 
