@@ -6,7 +6,8 @@ services:
     ports:
       - "6969:6969"
     volumes:
-      - ./data:/app/data  # Mount persistant data directory for speakers and models
+      - ./data:/app/data  # Mount persistent data directory for speakers and models
+      - ./static:/app/static  # Mount static directory for audio files
     environment:
       - FLASK_APP=flextts.py
       - DEFAULT_LANGUAGE=en # Default language for text-to-speech

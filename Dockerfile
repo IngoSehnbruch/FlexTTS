@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV MAKEFLAGS="-j4"
 ENV CFLAGS="-march=armv8-a"
 
-WORKDIR /
+WORKDIR /app
 
 # Install system dependencies required for TTS and build tools
 RUN apt-get update && apt-get install -y \
@@ -50,14 +50,17 @@ RUN pip install --no-cache-dir \
     scipy==1.11.4 \
     && rm -rf /root/.cache/pip
 
+# Create necessary directories
+RUN mkdir -p /app/data/speakers /app/static/audio
+
 # Copy the rest of the application
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p /static/audio
+# Set TTS_HOME for model storage
+ENV TTS_HOME=/app/data
 
 # Expose the port the app runs on
 EXPOSE 6969
 
 # Command to run the app
-CMD ["python", "flextts.py"]
+CMD ["python", "/app/flextts.py"]
