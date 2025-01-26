@@ -61,13 +61,13 @@ if not os.path.exists(static_audio_path):
 
 # Check if DEFAULT_LANGUAGE and DEFAULT_SPEAKER are set and valid
 
-if not default["language"] or not default["speaker"]:
-    raise ValueError("Fatal Error: DEFAULT_LANGUAGE and DEFAULT_SPEAKER environment variables must be set")
-
 default = {
     "language": os.getenv("DEFAULT_LANGUAGE"),
     "speaker": os.getenv("DEFAULT_SPEAKER")
 }
+
+if not default["language"] or not default["speaker"]:
+    raise ValueError("Fatal Error: DEFAULT_LANGUAGE and DEFAULT_SPEAKER environment variables must be set")
 
 if not os.path.exists(os.path.join(speaker_path, default["language"])):
     raise ValueError("Fatal Error: DEFAULT_LANGUAGE has no speaker files")
