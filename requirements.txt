@@ -6,6 +6,6 @@ torchaudio==2.1.2
 tqdm==4.66.1
 PyYAML==6.0.1
 pysbd==0.3.4
-pandas==2.0.3
+pandas==1.5.3
 anyascii==0.3.2
 TTS==0.21.1
