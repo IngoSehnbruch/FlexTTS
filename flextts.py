@@ -73,7 +73,7 @@ if not os.path.exists(os.path.join(speaker_path, default["language"])):
     raise ValueError("Fatal Error: DEFAULT_LANGUAGE has no speaker files")
     
 if not os.path.exists(os.path.join(speaker_path, default["language"], default["speaker"] + ".wav")):
-    raise ValueError("Fatal Error: DEFAULT_SPEAKER does not exist")
+    raise ValueError("Fatal Error: DEFAULT_SPEAKER does not exist", os.path.join(speaker_path, default["language"], default["speaker"] + ".wav"))
 
 
 # Initialize TTS model
