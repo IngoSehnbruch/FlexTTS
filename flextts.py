@@ -63,7 +63,7 @@ if not os.path.exists(static_audio_path):
 
 default = {
     "language": os.getenv("DEFAULT_LANGUAGE"),
-    "speaker": os.getenv("DEFAULT_SPEAKER")
+    "speaker": os.getenv("DEFAULT_SPEAKER").lower().replace(" ", "_")
 }
 
 if not default["language"] or not default["speaker"]:
