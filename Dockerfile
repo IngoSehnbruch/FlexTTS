@@ -32,7 +32,7 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
 
 # Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+COPY requirements.txt /app/
 
 # Install TTS without dependencies first (we'll install them manually)
 RUN pip install --no-cache-dir \
@@ -53,11 +53,15 @@ RUN pip install --no-cache-dir \
 # Create necessary directories
 RUN mkdir -p /app/data/speakers /app/static/audio
 
-# Copy the rest of the application
-COPY . .
+# Copy application files
+COPY flextts.py /app/
+COPY templates /app/templates/
 
 # Set TTS_HOME for model storage
 ENV TTS_HOME=/app/data
+
+# Verify files exist
+RUN ls -la /app/
 
 # Expose the port the app runs on
 EXPOSE 6969
