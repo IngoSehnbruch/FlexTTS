@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
     gfortran \
     libatlas-base-dev \
     libopenblas-dev \
+    mecab \
+    mecab-ipadic \
+    python3-tk \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -27,10 +30,10 @@ WORKDIR /app
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install PyTorch CPU version for ARM
+# Install PyTorch CPU version for ARM first
 RUN pip install --no-cache-dir torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu
 
-# Install other requirements including TTS with its dependencies
+# Install the rest of requirements (including TTS and its dependencies)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all application files
