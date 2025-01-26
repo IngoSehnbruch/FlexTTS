@@ -49,17 +49,31 @@ def log(*args):
 
 log("Loading FlexTTS")
 
-dafault = {
+app_path = os.getcwd()
+speaker_path = os.path.join(app_path, "data", "speakers")
+static_audio_path = os.path.join(app_path, "static", "audio")
+
+if not os.path.exists(speaker_path):
+    os.makedirs(speaker_path)
+
+if not os.path.exists(static_audio_path):
+    os.makedirs(static_audio_path)
+
+# Check if DEFAULT_LANGUAGE and DEFAULT_SPEAKER are set and valid
+
+if not default["language"] or not default["speaker"]:
+    raise ValueError("Fatal Error: DEFAULT_LANGUAGE and DEFAULT_SPEAKER environment variables must be set")
+
+default = {
     "language": os.getenv("DEFAULT_LANGUAGE"),
     "speaker": os.getenv("DEFAULT_SPEAKER")
 }
 
-if not dafault["language"] or not dafault["speaker"]:
-    raise ValueError("Fatal Error: DEFAULT_LANGUAGE and DEFAULT_SPEAKER environment variables must be set")
-
-app_path = os.getcwd()
-speaker_path = os.path.join(app_path, "data", "speakers")
-static_audio_path = os.path.join(app_path, "static", "audio")
+if not os.path.exists(os.path.join(speaker_path, default["language"])):
+    raise ValueError("Fatal Error: DEFAULT_LANGUAGE has no speaker files")
+    
+if not os.path.exists(os.path.join(speaker_path, default["language"], default["speaker"] + ".wav")):
+    raise ValueError("Fatal Error: DEFAULT_SPEAKER does not exist")
 
 
 # Initialize TTS model
@@ -169,8 +183,8 @@ def handle_tts():
     if request.method == 'GET':
         # Get all speakers for the template
         languages = get_languages_data()
-        selected_language = dafault['language']
-        selected_speaker = dafault['speaker'].replace('_', ' ').title()
+        selected_language = default['language']
+        selected_speaker = default['speaker'].replace('_', ' ').title()
         
         if request.headers.get('Accept', '').find('application/json') != -1 or request.is_json:
             return jsonify({
@@ -180,8 +194,8 @@ def handle_tts():
                     'POST': {
                         'parameters': {
                             'text': 'Text to convert to speech',
-                            'language': f'Language code (default: {dafault["language"]})',
-                            'speaker': f'Speaker file name (default: {dafault["speaker"]})',
+                            'language': f'Language code (default: {default["language"]})',
+                            'speaker': f'Speaker file name (default: {default["speaker"]})',
                             'response_type': 'Response type: "base64" or "url" (default: "url")'
                         },
                         'returns': {
@@ -201,8 +215,8 @@ def handle_tts():
 
         # Get text from request
         text = request.form.get('text', '')
-        language = request.form.get('language', dafault['language'])
-        speaker = request.form.get('speaker', dafault['speaker'])
+        language = request.form.get('language', default['language'])
+        speaker = request.form.get('speaker', default['speaker'])
         response_type = request.form.get('response_type', 'url')
 
         if request.is_json:
@@ -210,9 +224,9 @@ def handle_tts():
             if not text:
                 text = data.get('text', '')
             if not language:
-                language = data.get('language', dafault['language'])
-            if speaker == dafault['speaker']:
-                speaker = data.get('speaker', dafault['speaker'])
+                language = data.get('language', default['language'])
+            if speaker == default['speaker']:
+                speaker = data.get('speaker', default['speaker'])
             response_type = data.get('response_type', 'url')
 
         # Convert display speaker name to filename format
