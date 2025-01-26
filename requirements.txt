@@ -18,3 +18,8 @@ pysbd==0.3.4
 fsspec==2023.12.2
 huggingface-hub==0.20.1
 coqpit==0.0.17
+pandas==2.0.3
+requests==2.31.0
+soundfile==0.12.1
+mecab-python3==1.0.8
+protobuf==4.25.1

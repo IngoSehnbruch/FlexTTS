@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -y \
     gfortran \
     libatlas-base-dev \
     libopenblas-dev \
+    mecab \
+    mecab-ipadic \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -34,7 +36,12 @@ RUN pip install --no-cache-dir \
     pysbd==0.3.4 \
     fsspec==2023.12.2 \
     huggingface-hub==0.20.1 \
-    coqpit==0.0.17
+    coqpit==0.0.17 \
+    pandas==2.0.3 \
+    requests==2.31.0 \
+    soundfile==0.12.1 \
+    mecab-python3==1.0.8 \
+    protobuf==4.25.1
 
 # Install PyTorch CPU version for ARM
 RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
