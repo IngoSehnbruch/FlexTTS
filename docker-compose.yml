@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   flextts:
+    container_name: flextts  # Fixed container name
     build: .
     ports:
       - "6969:6969"
