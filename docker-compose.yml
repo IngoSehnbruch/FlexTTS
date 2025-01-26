@@ -7,10 +7,12 @@ services:
     ports:
       - "6969:6969"
     volumes:
-      - ./data:/app/data  # Mount persistent data directory for speakers and models
-      - ./static:/app/static  # Mount static directory for audio files
+      - .:/app  # Mount the entire app directory
+      - ./data:/app/data  # Keep persistent data separate
+      - ./static:/app/static  # Keep static files separate
     environment:
       - FLASK_APP=flextts.py
+      - FLASK_DEBUG=1  # Enable Flask debug mode for auto-reload
       - DEFAULT_LANGUAGE=en # Default language for text-to-speech
       - DEFAULT_SPEAKER=Donald_Trump # Default speaker for text-to-speech
       - DOCKER_PORT=6969 # External port for URL generation

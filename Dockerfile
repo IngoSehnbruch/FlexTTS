@@ -7,6 +7,10 @@ ENV TORCH_WARN_ONCE=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV MAKEFLAGS="-j4"
 ENV CFLAGS="-march=armv8-a"
+# Don't write .pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+# Don't buffer output
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies required for TTS and build tools
 RUN apt-get update && apt-get install -y \
@@ -57,5 +61,5 @@ ENV TTS_HOME=/app/data
 # Expose the port the app runs on
 EXPOSE 6969
 
-# Command to run the app
-CMD ["python", "flextts.py"]
+# Command to run the app with reload
+CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=6969", "--reload"]
