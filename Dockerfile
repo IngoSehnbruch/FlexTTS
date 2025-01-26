@@ -18,68 +18,29 @@ RUN apt-get update && apt-get install -y \
     gfortran \
     libatlas-base-dev \
     libopenblas-dev \
-    mecab \
-    mecab-ipadic \
-    python3-tk \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 RUN mkdir -p /app
 WORKDIR /app
 
-# Install numpy and other dependencies first
-RUN pip install --no-cache-dir \
-    setuptools==65.5.1 \
-    wheel==0.40.0 \
-    numpy==1.24.3 \
-    tqdm==4.66.1 \
-    PyYAML==6.0.1 \
-    pysbd==0.3.4 \
-    fsspec==2023.12.2 \
-    huggingface-hub==0.20.1 \
-    coqpit==0.0.17 \
-    pandas==2.0.3 \
-    requests==2.31.0 \
-    soundfile==0.12.1 \
-    mecab-python3==1.0.8 \
-    protobuf==4.25.1 \
-    matplotlib==3.7.4 \
-    pyparsing==3.1.1 \
-    cycler==0.12.1 \
-    kiwisolver==1.4.5 \
-    anyascii==0.3.2
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
 
 # Install PyTorch CPU version for ARM
-RUN pip install --no-cache-dir torch==2.1.2 --index-url https://download.pytorch.org/whl/cpu
-RUN pip install --no-cache-dir torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu
+
+# Install other requirements including TTS with its dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all application files
 COPY . /app/
-
-# Install TTS without dependencies first (we'll install them manually)
-RUN pip install --no-cache-dir \
-    flask==3.1.0 \
-    python-dotenv==1.0.1 \
-    && pip install --no-cache-dir TTS==0.21.1 --no-deps
-
-# Install remaining TTS dependencies manually (avoiding problematic ones)
-RUN pip install --no-cache-dir \
-    trainer==0.0.31 \
-    tensorboardX==2.6.2.2 \
-    librosa==0.10.1 \
-    unidecode==1.3.7 \
-    phonemizer==3.2.1 \
-    scipy==1.11.4 \
-    && rm -rf /root/.cache/pip
 
 # Create necessary directories
 RUN mkdir -p /app/data/speakers /app/static/audio
 
 # Set TTS_HOME for model storage
 ENV TTS_HOME=/app/data
-
-# Verify files exist
-RUN ls -la /app/
 
 # Expose the port the app runs on
 EXPOSE 6969
