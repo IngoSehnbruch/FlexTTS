@@ -13,3 +13,4 @@ phonemizer==3.2.1
 scipy==1.11.4
 tqdm==4.66.1
 PyYAML==6.0.1
+pysbd==0.3.4
