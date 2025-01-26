@@ -33,7 +33,14 @@ COPY requirements.txt .
 # Install PyTorch CPU version for ARM first
 RUN pip install --no-cache-dir torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu
 
-# Install the rest of requirements (including TTS and its dependencies)
+# Pre-install problematic packages for ARM
+RUN pip install --no-cache-dir \
+    blis==0.7.11 \
+    spacy==3.7.2 \
+    spacy-legacy==3.0.12 \
+    ja-core-news-sm @ https://github.com/explosion/spacy-models/releases/download/ja_core_news_sm-3.7.0/ja_core_news_sm-3.7.0-py3-none-any.whl
+
+# Install the rest of requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all application files
