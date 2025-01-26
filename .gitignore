@@ -5,6 +5,5 @@
 venv/
 __pycache__/
 _backup/
-data/speakers/*
-data/tts/*
 static/audio/*
+data/tts/*

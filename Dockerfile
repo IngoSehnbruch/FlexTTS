@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV MAKEFLAGS="-j4"
 ENV CFLAGS="-march=armv8-a"
 
-WORKDIR /app
+WORKDIR /
 
 # Install system dependencies required for TTS and build tools
 RUN apt-get update && apt-get install -y \
@@ -54,7 +54,7 @@ RUN pip install --no-cache-dir \
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p /app/data/speakers /app/static/audio
+RUN mkdir -p /static/audio
 
 # Expose the port the app runs on
 EXPOSE 6969

@@ -8,7 +8,7 @@ services:
     volumes:
       - ./data:/app/data  # Mount persistant data directory for speakers and models
     environment:
-      - FLASK_APP=FlexTTS.py
+      - FLASK_APP=flextts.py
       - DEFAULT_LANGUAGE=en # Default language for text-to-speech
       - DEFAULT_SPEAKER=Donald_Trump # Default speaker for text-to-speech
       - DOCKER_PORT=6969 # External port for URL generation
