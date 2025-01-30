@@ -240,41 +240,46 @@ Response:
 
 ## Home Assistant Integration
 
-FlexTTS can be easily integrated with Home Assistant using the generic TTS platform. Add the following to your `configuration.yaml`:
+FlexTTS can be integrated with Home Assistant using the command_line TTS platform. Add the following to your `configuration.yaml`:
 
 ```yaml
 tts:
-  - platform: generic
+  - platform: command_line
     name: FlexTTS
-    base_url: http://<ip>:6969
-    cache: true
-    cache_dir: /tmp/tts
-    service_name: flextts
-    timeout: 120  # Increased timeout (in seconds)
+    command: 'curl -X POST -H "Content-Type: application/json" -d "{\"text\":\"{{ message }}\"}" http://<ip>:6969/'
 ```
 
 ### Configuration Options
 
-- **base_url**: Your FlexTTS server address (e.g., `http://192.168.1.100:6969`)
-- **cache**: Enable caching of generated audio files (recommended)
-- **cache_dir**: Where Home Assistant stores the cached audio files
-- **service_name**: The service name to use in automations
-- **timeout**: Time to wait for TTS generation (default: 30s)
-  - The timeout is depending on your usage and the hardware used.
-  - For Raspberry Pi: For short text use 120 (seconds), for longer texts 300 (seconds)
-  - For CUDA systems: 60s should be sufficient, if not sending a lot of text.
-  - While there's no documented maximum timeout, keeping it under 300s (5 min) is recommended (?)
-  - Consider splitting very long texts into smaller chunks if you hit timeouts
+- **platform**: Must be set to `command_line`
+- **name**: The name to use for this TTS service (can be anything)
+- **command**: The curl command that sends the text to FlexTTS
+  - Replace `<ip>` with your FlexTTS server address (e.g., `192.168.1.100`)
 
 Note: FlexTTS automatically cleans up its own generated files after 1 hour. Home Assistant manages its cache separately.
 
-In Home Assistant automations or scripts:
+### Using in Automations
+
+Use the service in your automations like this:
 
 ```yaml
 service: tts.flextts_speak
-data:
+target:
   entity_id: media_player.living_room_speaker
+data:
   message: "I will make text to speech great again!"
+```
+
+For advanced usage with language/speaker selection:
+
+```yaml
+service: tts.flextts_speak
+target:
+  entity_id: media_player.living_room_speaker
+data:
+  message: "I will make text to speech great again!"
+  language: "en"
+  speaker: "donald_trump"
 ```
 
 ## Project Structure

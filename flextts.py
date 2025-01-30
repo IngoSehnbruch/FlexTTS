@@ -13,6 +13,10 @@ if os.getenv("DEFAULT_LANGUAGE") is None:
     load_dotenv()
 
 DEBUG = (os.getenv("DEBUG", "false").lower()=="true")
+DEBUG = True
+
+if DEBUG:
+    print(" > Debug mode enabled")
 
 if not DEBUG:
     # Filter out specific warnings
@@ -243,6 +247,7 @@ def handle_tts():
         language = request.form.get('language', default['language'])
         speaker = request.form.get('speaker', default['speaker'])
         response_type = request.form.get('response_type', 'url')
+        trackingid = request.form.get('trackingid', "NONE")
 
         if request.is_json:
             data = request.get_json()
@@ -329,6 +334,9 @@ def handle_tts():
             TTSManager.clear_cuda()
             
             response_data['url'] = audio_url
+
+        if trackingid != "NONE":
+            response_data['trackingid'] = trackingid
 
         if DEBUG:
             log("SUCCESS: Audio synthesized [" + response_type + "]")
