@@ -25,8 +25,18 @@ WORKDIR /app
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install PyTorch and requirements
-RUN pip install --no-cache-dir -r requirements.txt
+# Install base PyTorch first to check CUDA availability
+RUN pip install --no-cache-dir torch torchvision torchaudio && \
+    CUDA_AVAILABLE=$(python -c "import torch; print(1 if torch.cuda.is_available() else 0)") && \
+    if [ "$CUDA_AVAILABLE" = "1" ] ; then \
+        echo "CUDA is available, installing PyTorch with CUDA support" && \
+        pip uninstall -y torch torchvision torchaudio && \
+        pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 ; \
+    else \
+        echo "CUDA is not available, using CPU-only PyTorch" ; \
+    fi && \
+    python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA device count:', torch.cuda.device_count()); print('CUDA version:', torch.version.cuda if torch.cuda.is_available() else 'N/A')" && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy all application files
 COPY . /app/
