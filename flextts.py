@@ -13,7 +13,6 @@ if os.getenv("DEFAULT_LANGUAGE") is None:
     load_dotenv()
 
 DEBUG = (os.getenv("DEBUG", "false").lower()=="true")
-DEBUG = True
 
 if DEBUG:
     print(" > Debug mode enabled")
