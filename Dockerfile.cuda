@@ -1,0 +1,46 @@
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+# Set environment variables
+ENV PYTHONWARNINGS=ignore
+ENV TRANSFORMERS_VERBOSITY=error
+ENV TORCH_WARN_ONCE=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install Python 3.9 and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.9 \
+    python3.9-dev \
+    python3-pip \
+    build-essential \
+    libsndfile1 \
+    pkg-config \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+RUN mkdir -p /app
+WORKDIR /app
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+
+# Install PyTorch with CUDA support and other requirements
+RUN pip3 install --no-cache-dir torch==2.1.2+cu118 torchaudio==2.1.2+cu118 -f https://download.pytorch.org/whl/cu118
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy all application files
+COPY . /app/
+
+# Create necessary directories
+RUN mkdir -p /app/data/speakers /app/static/audio
+
+# Set TTS_HOME for model storage
+ENV TTS_HOME=/app/data
+
+# Expose the port the app runs on
+EXPOSE 6969
+
+# Command to run the app with reload
+CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=6969", "--reload"]
