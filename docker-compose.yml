@@ -1,6 +1,6 @@
 services:
   flextts:
-    container_name: flextts  # Fixed container name
+    container_name: flextts
     build: .
     ports:
       - "6969:6969"
