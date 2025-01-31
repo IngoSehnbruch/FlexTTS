@@ -1,6 +1,6 @@
 # FlexTTS API
 
-A flexible Text-to-Speech API service powered by [Coqui TTS](https://github.com/coqui-ai/TTS) using the XTTS v2 model. Supports multiple languages and speakers with a clean REST API and web interface.
+A flexible Text-to-Speech API service powered by [Coqui TTS](https://github.com/coqui-ai/TTS) using the XTTS v2 model. Supports multiple languages and speakers with a clean REST API and a web interface for testing and demos.
 
 ## Features
 
@@ -26,8 +26,36 @@ A flexible Text-to-Speech API service powered by [Coqui TTS](https://github.com/
 
 - Python 3.9
 - Docker (optional, but recommended)
-- 8 GB of RAM and 16 GB of disk space
-- CUDA GPU recommended for better performance, but not required
+- 16 GB of disk space
+- 8 GB of RAM or for CUDA support (optional but recommended for better performance):
+  - NVIDIA GPU with CUDA capability 
+  - NVIDIA drivers installed
+  - NVIDIA Container Toolkit (for Docker)
+
+### CUDA Setup (Optional)
+
+For Docker Container with GPU acceleration:
+
+1. Install NVIDIA Container Toolkit (Ubuntu/Debian):
+```bash
+# Add NVIDIA package repositories
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# Install NVIDIA Container Toolkit
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
+
+2. Verify CUDA setup:
+```bash
+sudo docker run --rm --runtime=nvidia --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
+```
 
 ## Quick Start
 
@@ -35,10 +63,12 @@ A flexible Text-to-Speech API service powered by [Coqui TTS](https://github.com/
 
 1. Clone the repository
 2. Set up your speaker voice samples in `data/speaker/{language}/{speaker}.wav`
-3. Run with Docker Compose:
+3. Run with Setup-Script for Docker Compose:
 
-#### Automatic Platform Detection (Recommended)
-Use the setup script which automatically detects your platform and uses the appropriate configuration:
+The setup script will automatically detect your hardware and use the appropriate configuration:
+- If an NVIDIA GPU is detected, it will use CUDA acceleration
+- If running on ARM architecture, it will use ARM-optimized builds
+- Otherwise, it will use the standard CPU build
 
 ```bash
 chmod +x docker-setup.sh  # Make script executable (Unix/Linux only)
@@ -59,10 +89,21 @@ For standard x86/x64 systems:
 docker compose up -d
 ```
 
+For CUDA-enabled systems:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d
+```
+
 The API will be available at `http://localhost:6969` / `http://<your-ip>:6969`
 (or the port specified in `docker-compose.yml`).
 
 ### Platform-Specific Notes
+
+#### CUDA-enabled Systems
+- Automatically uses NVIDIA GPU for faster inference
+- Requires NVIDIA Container Toolkit
+- Optimized PyTorch CUDA build
+- Significantly faster processing times
 
 #### Raspberry Pi / ARM Devices
 - Uses optimized ARM-specific builds
@@ -80,6 +121,8 @@ The API will be available at `http://localhost:6969` / `http://<your-ip>:6969`
 
 1. Clone the repository
 2. Create a virtual environment and install dependencies:
+
+Required Python Version: 3.9 !
 
 ```bash
 python -m venv venv
@@ -131,6 +174,8 @@ This makes it easy to:
 - Debug issues in real-time
 
 Note: Dependency changes still require a rebuild with `docker compose up --build`
+
+To run in debug mode, set `DEBUG=true` in your environment variables. This enables detailed logging.
 
 ## API Documentation
 
@@ -299,19 +344,24 @@ data:
 ├── docker-setup.sh     # Platform detection and setup script
 ├── Dockerfile          # Standard x86/x64 build configuration
 ├── Dockerfile.arm      # Optimized ARM build configuration
+├── Dockerfile.cuda     # CUDA-enabled build configuration
 ├── docker-compose.yml  # Base Docker configuration
 ├── docker-compose.arm.yml  # ARM-specific configuration
-├── flextts.py          # Main application
+├── docker-compose.cuda.yml # CUDA-specific configuration
+├── flextts.py         # Main application
 ├── requirements.txt    # Python dependencies
-└── README.md           # This Documentation
+└── README.md          # This Documentation
+```
 
 ### Key Components
 
 - **Docker Configuration**
   - `Dockerfile`: Standard build for x86/x64 systems
   - `Dockerfile.arm`: Optimized build for ARM devices (Raspberry Pi)
+  - `Dockerfile.cuda`: CUDA-enabled build for GPU acceleration
   - `docker-compose.yml`: Base configuration for all platforms
   - `docker-compose.arm.yml`: Additional settings for ARM
+  - `docker-compose.cuda.yml`: Additional settings for CUDA
   - `docker-setup.sh`: Automatic platform detection and setup
 
 - **Application Core**
@@ -337,10 +387,6 @@ data:
 - On first start, the model is downloaded and saved to persistent storage (~1.9GB) before the app is ready to use
 - On container-startup, the xtts model is loaded into memory before the app is ready to use
 - On installing, the first build on a Pi5 will take up to 10-15 minutes (with a good internet connection)
-
-## Development
-
-To run in debug mode, set `DEBUG=true` in your environment variables. This enables detailed logging.
 
 ## License
 
