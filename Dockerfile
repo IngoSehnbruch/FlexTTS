@@ -11,15 +11,21 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Don't buffer output
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies and Python
+# Install system dependencies and Python 3.9
 RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y \
     python3.9 \
-    python3-pip \
     python3.9-dev \
+    python3.9-distutils \
     build-essential \
     libsndfile1 \
     pkg-config \
     git \
+    curl \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.9 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -30,9 +36,9 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install PyTorch with CUDA support and other requirements
-RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 && \
-    python3 -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA device count:', torch.cuda.device_count()); print('CUDA version:', torch.version.cuda if torch.cuda.is_available() else 'N/A')" && \
-    pip3 install --no-cache-dir -r requirements.txt
+RUN python3.9 -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 && \
+    python3.9 -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA device count:', torch.cuda.device_count()); print('CUDA version:', torch.version.cuda if torch.cuda.is_available() else 'N/A')" && \
+    python3.9 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy all application files
 COPY . /app/
