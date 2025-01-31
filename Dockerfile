@@ -1,5 +1,5 @@
 # Use CUDA-enabled Python base image
-FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
 
 # Set environment variables
 ENV PYTHONWARNINGS=ignore
@@ -35,9 +35,15 @@ WORKDIR /app
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install PyTorch with CUDA support and other requirements
-RUN python3.9 -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 && \
-    python3.9 -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA device count:', torch.cuda.device_count()); print('CUDA version:', torch.version.cuda if torch.cuda.is_available() else 'N/A')" && \
+# Check CUDA availability and install appropriate PyTorch version
+RUN if nvidia-smi; then \
+        echo "*** CUDA IS AVAILABLE *** -> installing PyTorch with CUDA support" && \
+        python3.9 -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121; \
+    else \
+        echo "*** CUDA IS NOT AVAILABLE *** -> installing CPU-only PyTorch" && \
+        python3.9 -m pip install --no-cache-dir torch torchvision torchaudio; \
+    fi && \
+    python3.9 -c "import torch; print('CUDA installed:', torch.cuda.is_available()); print('CUDA device count:', torch.cuda.device_count()); print('CUDA version:', torch.version.cuda if torch.cuda.is_available() else 'N/A')" && \
     python3.9 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy all application files
