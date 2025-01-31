@@ -3,7 +3,10 @@ version: '3.8'
 services:
   flextts:
     container_name: flextts  # Fixed container name
-    build: .
+    build:
+      context: .
+      network: host
+    runtime: nvidia  # Enable NVIDIA runtime
     deploy:
       resources:
         reservations:
@@ -11,12 +14,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    ports:
-      - "6969:6969"
-    volumes:
-      - .:/app  # Mount the entire app directory
-      - ./data:/app/data  # Keep persistent data separate
-      - ./static:/app/static  # Keep static files separate
     environment:
       - FLASK_APP=/app/flextts.py  # Full path to the Flask app
       - FLASK_DEBUG=1  # Enable Flask debug mode for auto-reload
@@ -24,4 +21,12 @@ services:
       - DEFAULT_LANGUAGE=en # Default language for text-to-speech
       - DEFAULT_SPEAKER=donald_trump # Default speaker for text-to-speech
       - DOCKER_PORT=6969 # External port for URL generation
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    ports:
+      - "6969:6969"
+    volumes:
+      - .:/app  # Mount the entire app directory
+      - ./data:/app/data  # Keep persistent data separate
+      - ./static:/app/static  # Keep static files separate
     restart: unless-stopped  # Automatically restart container unless manually stopped
