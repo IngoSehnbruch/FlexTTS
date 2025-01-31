@@ -39,11 +39,15 @@ COPY requirements.txt .
 RUN if nvidia-smi; then \
         echo "*** CUDA IS AVAILABLE *** -> installing PyTorch with CUDA support" && \
         python3.9 -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121; \
-    else \
+    fi
+
+RUN if ! nvidia-smi; then \
         echo "*** CUDA IS NOT AVAILABLE *** -> installing CPU-only PyTorch" && \
         python3.9 -m pip install --no-cache-dir torch torchvision torchaudio; \
-    fi && \
-    python3.9 -c "import torch; print('CUDA installed:', torch.cuda.is_available()); print('CUDA device count:', torch.cuda.device_count()); print('CUDA version:', torch.version.cuda if torch.cuda.is_available() else 'N/A')" && \
+    fi
+
+# Install Python dependencies
+RUN python3.9 -c "import torch; print('CUDA installed:', torch.cuda.is_available()); print('CUDA device count:', torch.cuda.device_count()); print('CUDA version:', torch.version.cuda if torch.cuda.is_available() else 'N/A')" && \
     python3.9 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy all application files
