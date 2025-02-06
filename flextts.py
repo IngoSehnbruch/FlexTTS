@@ -151,7 +151,7 @@ def cleanup_old_files(directory, max_age_hours=1):
 
 # ##### Flask routes
 
-@app.route('/speakers', methods=['GET'])
+@app.route('/speakers', methods=['GET', 'POST'])
 def list_all_speakers():
     """List all available languages and their speakers"""
     try:
@@ -169,7 +169,7 @@ def list_all_speakers():
         return jsonify({'error': error_message}), 500
 
 
-@app.route('/speakers/<language>', methods=['GET'])
+@app.route('/speakers/<language>', methods=['GET', 'POST'])
 def list_speakers(language):
     """List available speakers for a given language"""
     try:
