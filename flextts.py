@@ -36,7 +36,7 @@ import re
 import uuid
 from datetime import datetime, timedelta
 
-from flask import Flask, request, render_template, jsonify, url_for
+from flask import Flask, request, render_template, jsonify, url_for, send_file
 
 import torch
 from TTS.api import TTS
@@ -224,13 +224,14 @@ def handle_tts():
                             'text': 'Text to convert to speech',
                             'language': f'Language code (default: {default["language"]})',
                             'speaker': f'Speaker file name (default: {default["speaker"]})',
-                            'response_type': 'Response type: "base64" or "url" (default: "url")'
+                            'response_type': 'Response type: "base64", "file" or "url" (default: "url")'
                         },
                         'returns': {
                             'text': 'Text to convert to speech',
                             'audio_data': 'Base64 encoded WAV audio (when response_type=base64)',
                             'url': 'URL to the generated audio file (when response_type=url)',
                             'format': 'Audio format (wav)'
+                            # or the file itself if response_type=file
                         }
                     }
                 }
@@ -262,8 +263,8 @@ def handle_tts():
         speaker = speaker.lower().replace(' ', '_')
 
         # Validate response_type
-        if response_type not in ['base64', 'url']:
-            return jsonify({'error': 'Invalid response_type. Must be either "base64" or "url"'}), 400
+        if response_type not in ['base64', 'url', "file"]:
+            return jsonify({'error': 'Invalid response_type. Must be either "base64", "file" or "url"'}), 400
 
         # speaker_regex test: only letters, underscores and dashes and numbers allowed!
         if not re.match("^[a-zA-Z0-9_\-]+$", speaker):
@@ -319,9 +320,10 @@ def handle_tts():
                 
             # Clear CUDA cache after generation
             TTSManager.clear_cuda()
-                
+            
             response_data['audio_data'] = audio_data
             response_data['encoding'] = 'base64'
+        
         else:  # URL response
             # Generate URL for the audio file
             audio_url = url_for('static', filename=f'audio/{output_filename}', _external=True)
@@ -339,6 +341,15 @@ def handle_tts():
 
         if DEBUG:
             log("SUCCESS: Audio synthesized [" + response_type + "]")
+
+        # Return the response based on the request type / platform
+
+        # FILE RESPONSE:
+        if response_type == 'file':
+            return send_file(
+                output_path,
+                mimetype="audio/wav",
+                as_attachment=False)
 
         # JSON RESPONSE:
         if request.headers.get('Accept', '').find('application/json') != -1 or request.is_json:
