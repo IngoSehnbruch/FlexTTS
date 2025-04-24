@@ -35,6 +35,7 @@ import base64
 import re
 import uuid
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Union
 
 from flask import Flask, request, render_template, jsonify, url_for, send_file
 
@@ -149,6 +150,176 @@ def cleanup_old_files(directory, max_age_hours=1):
                 log(f"Error removing old file {filepath}: {e}")
 
 
+# ##### OpenAI voice mapping
+
+# Map OpenAI voices to our speakers
+# This will map OpenAI voice names to our speaker names 
+OPENAI_VOICE_MAPPING = {
+    # OpenAI voice name -> [language, speaker]
+    "alloy": [default["language"], default["speaker"]],
+    "echo": [default["language"], default["speaker"]],
+    "fable": [default["language"], default["speaker"]],
+    "onyx": [default["language"], default["speaker"]],
+    "nova": [default["language"], default["speaker"]],
+    "shimmer": [default["language"], default["speaker"]]
+}
+
+# ##### OpenAI API compatible routes
+
+@app.route('/v1/audio/speech', methods=['POST'])
+def openai_audio_speech():
+    """OpenAI-compatible TTS endpoint"""
+    try:
+        # Get JSON data
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request must include a JSON body'}), 400
+            
+        # Extract parameters
+        model = data.get('model', 'tts-1')
+        input_text = data.get('input', '')
+        voice = data.get('voice', 'alloy')
+        response_format = data.get('response_format', 'wav')
+        
+        # Validate input
+        if not input_text:
+            return jsonify({'error': 'Input text is required'}), 400
+            
+        # Check if voice is valid
+        if voice not in OPENAI_VOICE_MAPPING:
+            return jsonify({
+                'error': {
+                    'message': f"'{voice}' is not a valid voice. Available voices are: {', '.join(OPENAI_VOICE_MAPPING.keys())}",
+                    'type': 'invalid_request_error',
+                    'param': 'voice',
+                    'code': 'invalid_voice'
+                }
+            }), 400
+        
+        # Only support wav format for now
+        if response_format != 'wav':
+            return jsonify({
+                'error': {
+                    'message': f"Currently only 'wav' format is supported",
+                    'type': 'invalid_request_error',
+                    'param': 'response_format'
+                }
+            }), 400
+            
+        # Map OpenAI voice to our system
+        language, speaker = OPENAI_VOICE_MAPPING[voice]
+        
+        # Generate unique filename for the audio
+        output_filename = f"{uuid.uuid4()}.wav"
+        output_path = os.path.join(static_audio_path, output_filename)
+        
+        # Redirect stdout during TTS synthesis if not in debug mode
+        if not DEBUG:
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+            
+        try:
+            tts_model = TTSManager.get_model()
+            speaker_wav = os.path.join(speaker_path, language, speaker + ".wav")
+            
+            tts_model.tts_to_file(
+                text=input_text,
+                file_path=output_path,
+                speaker_wav=speaker_wav,
+                language=language
+            )
+        finally:
+            if not DEBUG:
+                # Restore stdout
+                sys.stdout = old_stdout
+        
+        # Send file response
+        return send_file(
+            output_path,
+            mimetype="audio/wav",
+            as_attachment=True,
+            download_name="speech.wav"
+        )
+            
+    except Exception as e:
+        error_message = str(e)
+        log("ERROR:", error_message)
+        return jsonify({
+            'error': {
+                'message': error_message,
+                'type': 'server_error'
+            }
+        }), 500
+
+@app.route('/v1/models', methods=['GET'])
+def openai_list_models():
+    """List available TTS models (OpenAI compatible)"""
+    models = [
+        {
+            "id": "tts-1",
+            "object": "model",
+            "created": int(datetime.now().timestamp()),
+            "owned_by": "flextts"
+        },
+        {
+            "id": "tts-1-hd",
+            "object": "model",
+            "created": int(datetime.now().timestamp()),
+            "owned_by": "flextts"
+        }
+    ]
+    
+    return jsonify({"data": models, "object": "list"})
+
+@app.route('/v1/models/<model_id>', methods=['GET'])
+def openai_get_model(model_id):
+    """Get details for a specific model (OpenAI compatible)"""
+    if model_id not in ["tts-1", "tts-1-hd"]:
+        return jsonify({
+            'error': {
+                'message': f"Model '{model_id}' not found",
+                'type': 'invalid_request_error',
+                'param': 'model',
+                'code': 'model_not_found'
+            }
+        }), 404
+        
+    model_data = {
+        "id": model_id,
+        "object": "model",
+        "created": int(datetime.now().timestamp()),
+        "owned_by": "flextts",
+        "permissions": []
+    }
+    
+    return jsonify(model_data)
+
+@app.route('/v1/voices', methods=['GET'])
+def openai_list_voices():
+    """List available voices (OpenAI compatible for Open WebUI)"""
+    voices = []
+    
+    # Add standard OpenAI voice mappings
+    for voice_id in OPENAI_VOICE_MAPPING.keys():
+        voices.append({
+            "voice_id": voice_id,
+            "name": voice_id.capitalize()
+        })
+    
+    # Add all speakers as additional voices
+    languages = get_languages_data()
+    for language, speakers in languages.items():
+        for speaker in speakers:
+            speaker_id = speaker.lower().replace(' ', '_')
+            # Avoid duplicates with OpenAI voices
+            if speaker_id not in [v[1] for v in OPENAI_VOICE_MAPPING.values()]:
+                voices.append({
+                    "voice_id": f"{language}_{speaker_id}",
+                    "name": f"{language.capitalize()} - {speaker}"
+                })
+    
+    return jsonify({"voices": voices})
+
 # ##### Flask routes
 
 @app.route('/speakers', methods=['GET', 'POST'])
@@ -233,6 +404,23 @@ def handle_tts():
                             'format': 'Audio format (wav)'
                             # or the file itself if response_type=file
                         }
+                    }
+                },
+                'openai_compatible_api': {
+                    'info': 'OpenAI-compatible TTS API endpoints',
+                    'endpoints': {
+                        'POST /v1/audio/speech': {
+                            'description': 'Converts text to speech using OpenAI format',
+                            'parameters': {
+                                'model': 'TTS model ("tts-1" or "tts-1-hd")',
+                                'input': 'Text to convert to speech',
+                                'voice': 'One of "alloy", "echo", "fable", "onyx", "nova", "shimmer"',
+                                'response_format': 'Currently only "wav" is supported'
+                            }
+                        },
+                        'GET /v1/models': 'Lists available TTS models',
+                        'GET /v1/models/{model_id}': 'Gets details for a specific model',
+                        'GET /v1/voices': 'Lists available voices (compatible with Open WebUI)'
                     }
                 }
             })
