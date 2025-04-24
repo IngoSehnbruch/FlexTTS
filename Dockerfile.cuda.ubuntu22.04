@@ -1,0 +1,47 @@
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+
+# Set environment variables
+ENV PYTHONWARNINGS=ignore
+ENV TRANSFORMERS_VERBOSITY=error
+ENV TORCH_WARN_ONCE=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+
+# Do NOT overwrite sources.list
+RUN apt-get update && apt-get install -y software-properties-common
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update && apt-get install -y python3.9 python3.9-dev python3.9-distutils python3-pip build-essential libsndfile1 pkg-config git curl
+
+# Set Python 3.9 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
+
+# Ensure pip is installed for Python 3.9
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.9
+
+# Create app directory
+RUN mkdir -p /app
+WORKDIR /app
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+
+# Install PyTorch with CUDA 12.4 support and other requirements
+RUN python3.9 -m pip install --no-cache-dir torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu124
+RUN python3.9 -m pip install --no-cache-dir -r requirements.txt
+
+# Copy all application files
+COPY . /app/
+
+# Create necessary directories
+RUN mkdir -p /app/data/speakers /app/static/audio
+
+# Set TTS_HOME for model storage
+ENV TTS_HOME=/app/data
+
+# Expose the port the app runs on
+EXPOSE 6969
+
+# Command to run the app with reload
+CMD ["python3.9", "-m", "flask", "run", "--host=0.0.0.0", "--port=6969", "--reload"]

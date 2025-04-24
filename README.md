@@ -15,6 +15,7 @@ A flexible Text-to-Speech API service powered by [Coqui TTS](https://github.com/
 - 🧹 Automatic cleanup of old audio files
 - 🎯 Simple web interface for testing and demos
 - 🎛️ Platform-optimized builds (ARM/x86)
+- 🤖 OpenAI API-compatible interface
 
 ### Ready for Home Assistant
 
@@ -60,6 +61,8 @@ sudo docker run --rm --runtime=nvidia --gpus all nvidia/cuda:11.8.0-base-ubuntu2
 ## Quick Start
 
 ### Using Docker (Recommended)
+
+NOTE: The docker setup is messed up... it works fine with rasp pi, but for x86/x64 it's a bit tricky to get working... good luck :)
 
 1. Clone the repository
 2. Set up your speaker voice samples in `data/speaker/{language}/{speaker}.wav`
@@ -179,7 +182,9 @@ To run in debug mode, set `DEBUG=true` in your environment variables. This enabl
 
 ## API Documentation
 
-### GET /
+### Native API
+
+#### GET /
 
 Returns the web interface - or API information if JSON is requested.
 
@@ -374,6 +379,101 @@ data:
   - `static/audio/`: Generated audio files (cleaned hourly)
   - `data/`: TTS model storage (downloaded on first run)
 
+### OpenAI-Compatible API
+
+FlexTTS now includes an OpenAI-compatible API interface that works with applications expecting the OpenAI TTS API format. This makes it compatible with tools like Open WebUI and other applications that use OpenAI's API.
+
+#### POST /v1/audio/speech
+
+Converts text to speech using the OpenAI-compatible interface.
+
+```bash
+curl -X POST http://localhost:6969/v1/audio/speech \
+    -H "Content-Type: application/json" \
+    -d '{
+        "model": "tts-1",
+        "input": "I will make text to speech great again!",
+        "voice": "alloy",
+        "response_format": "wav"
+    }' \
+    --output speech.wav
+```
+
+Parameters:
+- `model`: "tts-1" or "tts-1-hd" (both map to the same XTTS v2 model)
+- `input`: Text to convert to speech
+- `voice`: One of "alloy", "echo", "fable", "onyx", "nova", "shimmer"
+- `response_format`: Currently only "wav" is supported
+
+#### GET /v1/models
+
+Lists available TTS models in OpenAI-compatible format.
+
+```bash
+curl http://localhost:6969/v1/models
+```
+
+Response:
+```json
+{
+  "data": [
+    {
+      "id": "tts-1",
+      "object": "model",
+      "owned_by": "flextts"
+    },
+    {
+      "id": "tts-1-hd",
+      "object": "model",
+      "owned_by": "flextts"
+    }
+  ],
+  "object": "list"
+}
+```
+
+#### GET /v1/models/{model_id}
+
+Get details for a specific model.
+
+```bash
+curl http://localhost:6969/v1/models/tts-1
+```
+
+Response:
+```json
+{
+  "id": "tts-1",
+  "object": "model",
+  "owned_by": "flextts",
+  "permissions": []
+}
+```
+
+#### GET /v1/voices
+
+Lists available voices in a format compatible with Open WebUI.
+
+```bash
+curl http://localhost:6969/v1/voices
+```
+
+Response:
+```json
+{
+  "voices": [
+    {
+      "voice_id": "alloy",
+      "name": "Alloy"
+    },
+    {
+      "voice_id": "en_donald_trump",
+      "name": "En - Donald Trump"
+    }
+  ]
+}
+```
+
 ## Important Notes
 
 - Audio files returned via URL are automatically deleted after 1 hour
@@ -387,6 +487,7 @@ data:
 - On first start, the model is downloaded and saved to persistent storage (~1.9GB) before the app is ready to use
 - On container-startup, the xtts model is loaded into memory before the app is ready to use
 - On installing, the first build on a Pi5 will take up to 10-15 minutes (with a good internet connection)
+- The OpenAI-compatible API maps standard OpenAI voices to your speakers as configured in the OPENAI_VOICE_MAPPING dictionary
 
 ## License
 
