@@ -118,6 +118,22 @@ TTSManager.get_model()
 
 # ##### Helper functions
 
+def clean_text_for_tts(text: str) -> str:
+    try:
+        """Clean text for TTS synthesis"""
+        # Remove unwanted characters - list: 
+        # Remove all non-alphanumeric characters except spaces, periods, commas, exclamation marks, question marks, single quotes, double quotes and dashes
+        text = re.sub(r'[^a-zA-Z0-9\s.,!?\'\"-]', '', text)
+        # Remove any "*" characters
+        text = re.sub(r'\*', '', text)
+        
+        # Replace multiple spaces with a single space
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+    except Exception as e:
+        log("Error cleaning text for TTS:", e)
+        return text
+
 def get_languages_data():
     """Get all available languages and their speakers"""
     languages = {}
@@ -223,7 +239,7 @@ def openai_audio_speech():
             speaker_wav = os.path.join(speaker_path, language, speaker + ".wav")
             
             tts_model.tts_to_file(
-                text=input_text,
+                text=clean_text_for_tts(input_text),
                 file_path=output_path,
                 speaker_wav=speaker_wav,
                 language=language
